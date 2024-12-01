@@ -36,19 +36,16 @@ fn part2(input: &str) -> i32 {
     input.lines().for_each(|line| {
         let mut splitted = line.split_whitespace();
 
-        first_list.push(splitted.next().unwrap().parse::<i32>().unwrap());
+        first_list.push(splitted.next().unwrap().parse().unwrap());
         let second = splitted.next().unwrap().parse::<i32>().unwrap();
 
         *map.entry(second).or_insert(0) += 1;
     });
 
-    let mut ans = 0;
-
-    for el in first_list {
-        ans += el * map.get(&el).unwrap_or(&0);
-    }
-
-    ans
+    first_list
+        .iter()
+        .map(|el| el * map.get(&el).unwrap_or(&0))
+        .sum()
 }
 
 #[allow(dead_code)]
