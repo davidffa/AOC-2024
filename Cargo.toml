@@ -19,4 +19,8 @@ path = "src/day-03.rs"
 name = "day-04"
 path = "src/day-04.rs"
 
+[[bin]]
+name = "day-05"
+path = "src/day-05.rs"
+
 [dependencies]
