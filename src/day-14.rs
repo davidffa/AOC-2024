@@ -66,48 +66,57 @@ fn part1(input: &str, map_width: i32, map_height: i32) -> u32 {
 
 const DIRS: [(i32, i32); 4] = [(1, 0), (-1, 0), (0, 1), (0, -1)];
 
-fn are_all_together(robots: &Vec<(i32, i32, i32, i32)>, map_width: i32, map_height: i32) -> bool {
-    let mut robots_map = vec![vec![false; map_width as usize]; map_height as usize];
-
-    robots.iter().for_each(|(x, y, _, _)| {
-        robots_map[*y as usize][*x as usize] = true;
-    });
-
-    let mut count = 0;
+fn are_all_together(robots_map: &Vec<Vec<bool>>, map_width: i32, map_height: i32) -> bool {
     let mut stack = VecDeque::new();
     let mut vis = HashSet::new();
-    stack.push_front((robots[0].0, robots[0].1));
+    let threshold = robots_map
+        .iter()
+        .flat_map(|r| r.iter())
+        .filter(|&&v| v)
+        .count()
+        / 3;
 
-    while let Some((x, y)) = stack.pop_front() {
-        if vis.contains(&(x, y)) {
-            continue;
-        }
+    for y in 0..map_height {
+        for x in 0..map_width {
+            if !robots_map[y as usize][x as usize] {
+                continue;
+            }
 
-        vis.insert((x, y));
-        count += 1;
+            stack.clear();
+            let mut count = 0;
 
-        for (dx, dy) in DIRS {
-            let nx = x + dx;
-            let ny = y + dy;
+            stack.push_front((x, y));
 
-            if 0 <= nx
-                && nx < map_width
-                && 0 <= ny
-                && ny < map_height
-                && robots_map[ny as usize][nx as usize]
-            {
-                stack.push_front((nx, ny));
+            while let Some((x, y)) = stack.pop_front() {
+                if vis.contains(&(x, y)) {
+                    continue;
+                }
+
+                vis.insert((x, y));
+                count += 1;
+
+                for (dx, dy) in DIRS {
+                    let nx = x + dx;
+                    let ny = y + dy;
+
+                    if 0 <= nx
+                        && nx < map_width
+                        && 0 <= ny
+                        && ny < map_height
+                        && robots_map[ny as usize][nx as usize]
+                    {
+                        stack.push_front((nx, ny));
+                    }
+                }
+            }
+
+            if count > threshold {
+                return true;
             }
         }
     }
 
-    count
-        > robots_map
-            .iter()
-            .flat_map(|r| r.iter())
-            .filter(|&&v| v)
-            .count()
-            / 3
+    false
 }
 
 fn part2(input: &str, map_width: i32, map_height: i32) -> u32 {
@@ -121,9 +130,21 @@ fn part2(input: &str, map_width: i32, map_height: i32) -> u32 {
             *y = (*y + *dy).rem_euclid(map_height);
         });
 
+        let mut robots_map = vec![vec![false; map_width as usize]; map_height as usize];
+
+        robots.iter().for_each(|(x, y, _, _)| {
+            robots_map[*y as usize][*x as usize] = true;
+        });
+
         ans += 1;
 
-        if are_all_together(&robots, map_width, map_height) {
+        if are_all_together(&robots_map, map_width, map_height) {
+            for y in 0..map_height {
+                for x in 0..map_width {
+                    print!("{}", robots_map[y as usize][x as usize] as u8);
+                }
+                println!();
+            }
             break;
         }
     }
