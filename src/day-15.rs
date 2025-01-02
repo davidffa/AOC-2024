@@ -1,3 +1,5 @@
+use std::collections::{HashSet, VecDeque};
+
 fn main() {
     let input = include_str!("../inputs/day-15.txt");
 
@@ -103,9 +105,94 @@ fn part1(input: &str) -> usize {
     ans
 }
 
+fn can_move(
+    pos: (usize, usize),
+    map: &Vec<Vec<char>>,
+    movement: char,
+) -> Option<Vec<(usize, usize)>> {
+    let mut queue = VecDeque::new();
+    let mut visited = Vec::new();
+    let dy = if movement == '^' { -1 } else { 1 };
+
+    queue.push_back(pos);
+
+    while let Some((x, y)) = queue.pop_front() {
+        if visited.contains(&(x, y)) {
+            continue;
+        }
+
+        visited.push((x, y));
+
+        let ny = (y as i32 + dy) as usize;
+
+        if map[ny][x] == '#' {
+            return None;
+        } else if map[ny][x] == '[' {
+            queue.push_back((x, ny));
+            queue.push_back((x + 1, ny));
+        } else if map[ny as usize][x] == ']' {
+            queue.push_back((x, ny));
+            queue.push_back((x - 1, ny));
+        }
+    }
+
+    Some(visited)
+}
+
+fn execute_move2(
+    pos: &mut (usize, usize),
+    map: &mut Vec<Vec<char>>,
+    movement: char,
+) -> (usize, usize) {
+    let (dx, dy) = match movement {
+        '^' => DIRS[1],
+        '<' => DIRS[3],
+        '>' => DIRS[2],
+        'v' => DIRS[0],
+        _ => unreachable!(),
+    };
+
+    if movement == '^' || movement == 'v' {
+        let dy = if movement == '^' { -1 } else { 1 };
+        if let Some(positions) = can_move(*pos, map, movement) {
+            for (x, y) in positions.iter().rev() {
+                map[(*y as i32 + dy) as usize][*x] = map[*y][*x];
+                map[*y][*x] = '.';
+            }
+
+            pos.1 = (pos.1 as i32 + dy) as usize;
+        }
+
+        return *pos;
+    }
+
+    if let Some((x, y)) = free_space(&map, *pos, (dx, dy)) {
+        let (dx, dy) = (-dx, -dy);
+
+        let mut px = x;
+        let mut py = y;
+        let mut nx = (x as i32 + dx) as usize;
+        let mut ny = (y as i32 + dy) as usize;
+
+        while map[py][px] != '@' {
+            map[py][px] = map[ny][nx];
+            px = nx;
+            py = ny;
+            nx = (nx as i32 + dx) as usize;
+            ny = (ny as i32 + dy) as usize;
+        }
+
+        map[py][px] = '.';
+
+        return ((px as i32 - dx) as usize, (py as i32 - dy) as usize);
+    }
+
+    *pos
+}
+
 fn part2(input: &str) -> usize {
     let mut splited_input = input.split("\n\n");
-    let mut map_str = splited_input
+    let map_str = splited_input
         .next()
         .unwrap()
         .replace(".", "..")
@@ -129,16 +216,9 @@ fn part2(input: &str) -> usize {
         }
     }
 
-    for y in 0..map.len() {
-        for x in 0..map[0].len() {
-            print!("{}", map[y][x]);
-        }
-        println!();
-    }
-
     splited_input.next().unwrap().chars().for_each(|movement| {
         if movement != '\n' {
-            pos = execute_move(&mut pos, &mut map, movement)
+            pos = execute_move2(&mut pos, &mut map, movement);
         }
     });
 
@@ -146,7 +226,7 @@ fn part2(input: &str) -> usize {
 
     for y in 1..map.len() - 1 {
         for x in 1..map[0].len() - 1 {
-            if map[y][x] == 'O' {
+            if map[y][x] == '[' {
                 ans += 100 * y + x;
             }
         }
@@ -154,6 +234,19 @@ fn part2(input: &str) -> usize {
 
     ans
 }
+
+#[allow(dead_code)]
+const TEST_INPUT3: &str = "\
+#######
+#...#.#
+#.....#
+#..OO@#
+#..O..#
+#.....#
+#######
+
+<vv<<^^<<^^
+";
 
 #[allow(dead_code)]
 const TEST_INPUT2: &str = "\
